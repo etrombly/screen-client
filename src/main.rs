@@ -206,6 +206,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 image.translate_mut(Coord::new(86, 0));
                 display.draw(&image);
             }
+            Some(Icon::Cloudy) => {
+                let mut image = Image1BPP::new(include_bytes!("cloudy.bmp"), 40, 40);
+                image.translate_mut(Coord::new(86, 0));
+                display.draw(&image);
+            }
             Some(Icon::PartlyCloudyDay) => {
                 let mut image = Image1BPP::new(include_bytes!("partlycloudyday.bmp"), 40, 40);
                 image.translate_mut(Coord::new(86, 0));
