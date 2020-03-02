@@ -1,0 +1,23 @@
+[package]
+name = "screen-client"
+version = "0.1.0"
+authors = ["Eric Trombly <etrombly@yahoo.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serialport = "3.3.0"
+embedded-graphics = {version = "0.5.2", features= ["bmp"]}
+byteorder = "1.3.4"
+chrono = "0.4.10"
+profont = "0.3.0"
+hyper = "0.13.2"
+hyper-tls = "0.4.1"
+tokio = {version = "0.2.11", features = ["full"]}
+bytes = "0.5.4"
+serde_json = "1.0.48"
+serde_derive = "1.0.104"
+serde = "1.0.104"
+textwrap = "0.11.0"
+dotenv_codegen = "0.15.0"
