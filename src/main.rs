@@ -3,19 +3,21 @@
 use byteorder::{BigEndian, WriteBytesExt};
 use bytes::buf::BufExt as _;
 use chrono::Local;
+use dotenv_codegen::dotenv;
 use embedded_graphics::{
     drawable::Pixel,
     image::Image1BPP,
     prelude::{UnsignedCoord, *},
     Drawing,
 };
+use htmlescape::decode_html;
 use hyper::client::Client;
 use hyper_tls::HttpsConnector;
-use profont::{ProFont14Point, ProFont24Point, ProFont9Point};
+use profont::{ProFont14Point, ProFont24Point, ProFont9Point, ProFont7Point};
+use rss::Channel;
 use serde_derive::{Deserialize, Serialize};
 use serialport::open;
 use std::{io::prelude::*, str};
-use dotenv_codegen::dotenv;
 use textwrap::fill;
 
 pub const ROWS: u16 = 128;
@@ -90,20 +92,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let https = HttpsConnector::new();
     let client = Client::builder().build::<_, hyper::Body>(https);
-    let uri = format!(
+    let weather_uri = format!(
         "https://api.darksky.net/forecast/{}/{},{}",
         token, lat, long
     )
     .parse()?;
-    let resp = client.get(uri).await?;
-    println!("Response: {}", resp.status());
+    let news_uri = "https://news.yahoo.com/rss/home".parse()?;
+    let (weather_resp, news_resp) =
+        tokio::try_join!(client.get(weather_uri), client.get(news_uri))?;
 
-    let body = hyper::body::aggregate(resp).await?;
+    let (weather_body, news_body) = tokio::try_join!(
+        hyper::body::aggregate(weather_resp),
+        hyper::body::aggregate(news_resp)
+    )?;
 
     // try to parse as json with serde_json
-    let forecast: Forecast = serde_json::from_reader(body.reader())?;
-
-    println!("{:#?}", forecast);
+    let forecast: Forecast = serde_json::from_reader(weather_body.reader())?;
+    let news = Channel::read_from(news_body.reader()).unwrap();
 
     let mut buf = [255u8; ROWS as usize * COLS as usize / 8];
     let mut display = Display { buff: &mut buf };
@@ -122,6 +127,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .fill(Some(Color::White))
         .translate(Coord::new(0, 0));
     display.draw(t);
+
+    let mut count = 0;
+    for titles in news.items().iter().take(2) {
+        let decoded = decode_html(titles.title().unwrap()).unwrap();
+        let text = fill(&decoded, 41);
+        for line in text.split('\n') {
+            count += 1;
+            if count < 4 {
+                let t = ProFont9Point::render_str(&line)
+                    .stroke(Some(Color::Black))
+                    .fill(Some(Color::White))
+                    .translate(Coord::new(0, 76 + (count * 11)));
+                display.draw(t);
+            }
+        }
+    }
 
     if let Some(currently) = forecast.currently {
         if let Some(temp) = currently.temperature {
