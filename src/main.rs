@@ -200,17 +200,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 display.draw(t);
             }
         }
-        count += 1;
         if let Some(daily) = forecast.daily {
             if let Some(data) = daily.data {
                 if let Some(summary) = &data[0].summary {
                     let summary = format!("Today: {}", summary);
                     let text = fill(&summary, 20);
-                    for (i, line) in text.split('\n').enumerate() {
+                    for line in text.split('\n') {
+                        count += 1;
                         let t = ProFont9Point::render_str(&line)
                             .stroke(Some(Color::Black))
                             .fill(Some(Color::White))
-                            .translate(Coord::new(130, 20 + ((i as i32 + count) * 10)));
+                            .translate(Coord::new(130, 20 + (count * 10)));
+                        display.draw(t);
+                    }
+                }
+                if let Some(summary) = &data[1].summary {
+                    let summary = format!("Tomorrow: {}", summary);
+                    let text = fill(&summary, 20);
+                    for line in text.split('\n') {
+                        count += 1;
+                        let t = ProFont9Point::render_str(&line)
+                            .stroke(Some(Color::Black))
+                            .fill(Some(Color::White))
+                            .translate(Coord::new(130, 20 + (count * 10)));
                         display.draw(t);
                     }
                 }
